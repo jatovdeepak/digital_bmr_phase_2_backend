@@ -27,15 +27,4 @@ const createFile = (folderName, fileName, content) => {
     console.log(`File '${fileName}' created in '${folderName}' with content.`);
 };
 
-// Function to append content to a file
-const appendToFile = (filePath, content) => {
-    fs.appendFile(filePath, content, (err) => {
-        if (err) {
-            console.error('Error appending to file:', err);
-        } else {
-            console.log('Text appended successfully!');
-        }
-    });
-};
-
-module.exports = { createFolder, createFile, appendToFile };
+module.exports = { createFolder, createFile };

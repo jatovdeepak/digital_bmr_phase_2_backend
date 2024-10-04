@@ -13,14 +13,3 @@ model FileConversion {
   html      String   @db.Text  // Change from default to Text
   createdAt DateTime @default(now())
 }
-
-
-model sample3docx_schema {
-      id   String @id @default(cuid())
-      content String
-    }
-model Free_Blank_University_Admission_Form_Templatedocx_schema {
-      id   String @id @default(cuid())
-      content String
-    }
-

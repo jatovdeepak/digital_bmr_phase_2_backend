@@ -1,16 +1,13 @@
 const mammoth = require('mammoth');
-const prisma = require('@prisma/client');
-const { createFolder, createFile, appendToFile } = require('../CodeCreator/createFiles');
-const { PrismaClient } = prisma;
+const { PrismaClient } = require('@prisma/client');
 
 const prismaClient = new PrismaClient();
 
-// Helper function to sanitize the filename
 const sanitizeFileName = (fileName) => {
   return fileName
-    .replace(/\s+/g, '_')   // Replace spaces with underscores
-    .replace(/\W+/g, '')     // Remove special characters like dots (.)
-    .replace(/^\d+/, '');    // Remove leading digits if any
+    .replace(/\s+/g, '_')
+    .replace(/\W+/g, '')
+    .replace(/^\d+/, '');
 };
 
 const convertDocToHtml = async (req, res) => {
@@ -23,28 +20,14 @@ const convertDocToHtml = async (req, res) => {
     const result = await mammoth.convertToHtml({ path: file.path });
     const html = result.value;
 
-    // Sanitize the file name for Prisma model usage
     const sanitizedFileName = sanitizeFileName(file.originalname);
 
-    // Save the result to the database
     const newConversion = await prismaClient.fileConversion.create({
       data: {
         fileName: sanitizedFileName,
         html: html,
       },
     });
-
-    // Create folder and file using CodeCreator module
-    createFolder('GeneratedHTML');
-    createFile('GeneratedHTML', `${sanitizedFileName}.html`, html);
-
-    // Append the new schema model to the Prisma schema
-    const schemaPath = './prisma/schema.prisma'; // Modify if needed
-    const newSchema = `\nmodel ${sanitizedFileName}_schema {
-      id   String @id @default(cuid())
-      content String
-    }`;
-    appendToFile(schemaPath, newSchema);
 
     res.status(200).json({ html });
   } catch (error) {
@@ -53,4 +36,44 @@ const convertDocToHtml = async (req, res) => {
   }
 };
 
-module.exports = { convertDocToHtml };
+const getConvertedFiles = async (req, res) => {
+  try {
+    const files = await prismaClient.fileConversion.findMany();
+    res.status(200).json(files);
+  } catch (error) {
+    console.error('Error fetching converted files:', error);
+    res.status(500).json({ error: 'Error fetching files' });
+  }
+};
+
+const getFileById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const file = await prismaClient.fileConversion.findUnique({
+      where: { id: parseInt(id) },
+    });
+    if (!file) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+    res.status(200).json(file.html);
+  } catch (error) {
+    console.error('Error fetching file by ID:', error);
+    res.status(500).json({ error: 'Error fetching file' });
+  }
+};
+
+const deleteFileById = async (req, res) => {
+  const { id } = req.params;
+  try {
+    const deletedFile = await prismaClient.fileConversion.delete({
+      where: { id: parseInt(id) },
+    });
+    res.status(200).json(deletedFile);
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    res.status(500).json({ error: 'Error deleting file' });
+  }
+};
+
+module.exports = { convertDocToHtml, getConvertedFiles, getFileById, deleteFileById };
+
